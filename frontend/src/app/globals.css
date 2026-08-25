@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+:root {
+  --bg-workspace: #0f1115;
+  --bg-panel: #171a21;
+  --bg-elevated: #1f232d;
+  --bg-inset: #12151b;
+  --border-subtle: #2a2f3a;
+  --border-focus: #3f4756;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent-blue: #3b82f6;
+  --accent-green: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-red: #ef4444;
+}
+
+html, body {
+  background-color: #0f1115;
+  color: #e2e8f0;
+  font-family: var(--font-sans), Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Monospace font utility */
+.font-mono, code, pre, kbd, samp {
+  font-family: var(--font-mono), "IBM Plex Mono", "JetBrains Mono", Consolas, monospace;
+}
+
+/* Custom workstation ultra-thin scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f1115;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2f3a;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3f4756;
+}
+
+/* Document canvas crosshair cursor */
+.canvas-crosshair {
+  cursor: crosshair;
+}
+
+/* Zero shadow, sharp 2px radius defaults */
+* {
+  border-color: #2a2f3a;
+}

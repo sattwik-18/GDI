@@ -1,0 +1,14 @@
+# Locked Development Dependencies for GDI Genome Engine Prototype 1
+
+-r requirements.txt
+
+black==24.4.2
+isort==5.13.2
+mutmut==2.4.4
+mypy==1.10.0
+pip-tools==7.4.1
+pre-commit==3.7.0
+pytest==9.0.3
+pytest-asyncio==1.4.0
+pytest-cov==7.1.0
+ruff==0.4.4

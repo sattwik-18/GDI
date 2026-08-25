@@ -1,0 +1,68 @@
+{
+  "title": "GDI Prototype 1 Benchmark Report",
+  "timestamp": "2026-07-22T05:46:00.560991+00:00",
+  "metrics": {
+    "documents_evaluated": 3,
+    "total_duration_ms": 215.01,
+    "mean_e2e_ms": 215.01,
+    "overall_peak_rss_mb": 148.77,
+    "feature_count": 94,
+    "determinism_passed": true,
+    "stages": {
+      "ValidationStep": {
+        "mean_ms": 0.1,
+        "min_ms": 0.09,
+        "max_ms": 0.11,
+        "peak_rss_mb": 144.92
+      },
+      "MetadataExtractionStep": {
+        "mean_ms": 0.84,
+        "min_ms": 0.78,
+        "max_ms": 0.88,
+        "peak_rss_mb": 144.96
+      },
+      "PDFRenderingStep": {
+        "mean_ms": 4.74,
+        "min_ms": 4.57,
+        "max_ms": 5.07,
+        "peak_rss_mb": 145.3
+      },
+      "ImageNormalizationStep": {
+        "mean_ms": 13.06,
+        "min_ms": 9.61,
+        "max_ms": 19.26,
+        "peak_rss_mb": 147.52
+      },
+      "QualityAssessmentStep": {
+        "mean_ms": 20.03,
+        "min_ms": 19.09,
+        "max_ms": 21.7,
+        "peak_rss_mb": 147.55
+      },
+      "GeometryExtractionStep": {
+        "mean_ms": 0.05,
+        "min_ms": 0.05,
+        "max_ms": 0.07,
+        "peak_rss_mb": 147.55
+      },
+      "TextureExtractionStep": {
+        "mean_ms": 67.09,
+        "min_ms": 65.72,
+        "max_ms": 68.83,
+        "peak_rss_mb": 148.77
+      },
+      "FrequencyExtractionStep": {
+        "mean_ms": 26.26,
+        "min_ms": 25.65,
+        "max_ms": 27.23,
+        "peak_rss_mb": 145.53
+      },
+      "StatisticalExtractionStep": {
+        "mean_ms": 82.84,
+        "min_ms": 81.82,
+        "max_ms": 83.5,
+        "peak_rss_mb": 145.05
+      }
+    }
+  }
+}

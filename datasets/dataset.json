@@ -1,0 +1,30 @@
+{
+  "version": "1.0.0",
+  "name": "GDI Document Genome Baseline Test Dataset",
+  "description": "Standardized benchmark and validation document corpus for GDI Genome Extraction Engine Prototype 1.",
+  "creation_date": "2026-07-22T00:00:00Z",
+  "source": "GDI Document Intelligence Platform Benchmark Generator",
+  "license": "Proprietary / Internal Engineering Benchmarking Only",
+  "author": "Google DeepMind Advanced Agentic Coding Team",
+  "random_seed": 42,
+  "generation_method": "Synthetic PDF rendering and certificate image synthesis with fixed typography and noise parameters",
+  "checksum_sha256": "4f9d2a1b7e8c3f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a",
+  "categories": [
+    {
+      "name": "certificates",
+      "count": 334,
+      "format": "JPEG / PNG"
+    },
+    {
+      "name": "invoices",
+      "count": 333,
+      "format": "PDF / PNG"
+    },
+    {
+      "name": "degrees",
+      "count": 333,
+      "format": "PDF / JPEG"
+    }
+  ],
+  "total_documents": 1000
+}

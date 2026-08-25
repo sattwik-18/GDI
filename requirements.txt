@@ -1,0 +1,26 @@
+# Locked Working Dependencies for GDI Genome Engine Prototype 1
+# Operating System: Windows 10/11 x64 / Linux x64
+# Python Version: 3.12+
+
+aiofiles==25.1.0
+alembic==1.13.1
+asyncpg==0.31.0
+fastapi==0.128.8
+httpx==0.28.1
+numpy==1.26.4
+opencv-python-headless==4.9.0.80
+pillow==12.2.0
+psutil==7.2.2
+pydantic==2.12.5
+pydantic-settings==2.14.2
+pymupdf==1.28.0
+python-multipart==0.0.21
+PyWavelets==1.9.0
+pytesseract==0.3.13
+paddlepaddle==3.3.1
+paddleocr==2.7.3
+scikit-image==0.26.0
+scipy==1.17.0
+sqlalchemy==2.0.51
+structlog==26.1.0
+uvicorn==0.40.0

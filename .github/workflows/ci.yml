@@ -1,0 +1,136 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "develop", "feature/**"]
+  pull_request:
+    branches: ["main", "develop"]
+
+jobs:
+  lint-and-typecheck:
+    name: "Lint & Type Check"
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dev dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run Black (format check)
+        run: black --check --diff src/ tests/ benchmarks/
+
+      - name: Run isort (import order check)
+        run: isort --check --diff src/ tests/ benchmarks/
+
+      - name: Run Ruff (lint)
+        run: ruff check src/ tests/ benchmarks/
+
+      - name: Run MyPy (type check)
+        run: mypy src/ --ignore-missing-imports
+
+  test:
+    name: "Test Suite (Python 3.12)"
+    runs-on: ubuntu-22.04
+    needs: lint-and-typecheck
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: gdi_user
+          POSTGRES_PASSWORD: gdi_password
+          POSTGRES_DB: gdi_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: gdi_user
+      POSTGRES_PASSWORD: gdi_password
+      POSTGRES_DB: gdi_db
+      OCR_ENGINE_PROVIDER: pytesseract
+      DEV_OCR_FALLBACK: "true"
+      ENVIRONMENT: testing
+      LOG_FORMAT: text
+      STORAGE_ROOT: /tmp/gdi_test_storage
+      TEMP_DIR: /tmp/gdi_test_storage/temp
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            tesseract-ocr \
+            tesseract-ocr-eng \
+            libgl1-mesa-glx \
+            libglib2.0-0 \
+            libgomp1
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run database migrations
+        run: alembic upgrade head
+
+      - name: Run unit and regression tests
+        run: |
+          pytest tests/unit/ tests/regression/ tests/security/ \
+            -v \
+            --cov=src \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            -x
+
+      - name: Upload coverage to GitHub Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+          retention-days: 7
+
+  docker-build:
+    name: "Docker Build Validation"
+    runs-on: ubuntu-22.04
+    needs: lint-and-typecheck
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build --no-cache -t gdi-genome-engine:ci-test .
+
+      - name: Verify image starts
+        run: |
+          docker run --rm \
+            -e POSTGRES_HOST=localhost \
+            -e OCR_ENGINE_PROVIDER=pytesseract \
+            -e DEV_OCR_FALLBACK=true \
+            -e ENVIRONMENT=testing \
+            gdi-genome-engine:ci-test \
+            python -c "from src.config.settings import get_settings; print('Config OK:', get_settings().api.app_name)"
