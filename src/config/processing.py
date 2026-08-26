@@ -16,7 +16,7 @@ class ProcessingSettings(BaseSettings):
     storage_root: str = Field(default="./gdi_storage", validation_alias="STORAGE_ROOT")
     temp_dir: str = Field(default="./gdi_storage/temp", validation_alias="TEMP_DIR")
     step_timeout_seconds: float = Field(default=60.0, validation_alias="STEP_TIMEOUT_SECONDS")
-    debug_pipeline: bool = Field(default=False, validation_alias="DEBUG_PIPELINE")
+    debug_pipeline: bool = Field(default=True, validation_alias="DEBUG_PIPELINE")
 
     class Config:
         extra = "ignore"

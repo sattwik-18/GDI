@@ -60,6 +60,11 @@ export interface GenomeResponse {
   genome_seal: GenomeSeal;
   pages: Array<Record<string, any>>;
   processing_manifest: ProcessingManifest;
+  structural_genome?: Record<string, any> | null;
+  semantic_genome?: Record<string, any> | null;
+  visual_genome?: Record<string, any> | null;
+  template_genome?: Record<string, any> | null;
+  evidence_graph?: Record<string, any> | null;
 }
 
 export interface DebugInspectionResponse {

@@ -37,4 +37,9 @@ class DocumentGenome:
     feature_vector: list[float]
     genome_seal: GenomeSeal
     processing_manifest: dict[str, Any]
+    structural_genome: dict[str, Any] | None = None
+    semantic_genome: dict[str, Any] | None = None
+    visual_genome: dict[str, Any] | None = None
+    template_genome: dict[str, Any] | None = None
+    evidence_graph: dict[str, Any] | None = None
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))

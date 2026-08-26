@@ -61,6 +61,11 @@ class GenomeResponse(BaseModel):
     genome_seal: GenomeSealResponse
     pages: list[dict[str, Any]]
     processing_manifest: dict[str, Any]
+    structural_genome: dict[str, Any] | None = None
+    semantic_genome: dict[str, Any] | None = None
+    visual_genome: dict[str, Any] | None = None
+    template_genome: dict[str, Any] | None = None
+    evidence_graph: dict[str, Any] | None = None
 
 
 class ComponentHealth(BaseModel):

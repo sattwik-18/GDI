@@ -21,6 +21,7 @@ def _genome_to_response(genome) -> GenomeResponse:
         pipeline_version=genome.pipeline_version,
         feature_version=genome.feature_version,
         processing_version=genome.processing_version,
+        config_fingerprint=getattr(genome, "config_fingerprint", ""),
         document_hash_sha256=genome.document_hash_sha256,
         document_hash_sha3_256=genome.document_hash_sha3_256,
         extraction_timestamp=genome.extraction_timestamp.isoformat(),
@@ -35,6 +36,11 @@ def _genome_to_response(genome) -> GenomeResponse:
         ),
         pages=genome.pages,
         processing_manifest=genome.processing_manifest,
+        structural_genome=getattr(genome, "structural_genome", None),
+        semantic_genome=getattr(genome, "semantic_genome", None),
+        visual_genome=getattr(genome, "visual_genome", None),
+        template_genome=getattr(genome, "template_genome", None),
+        evidence_graph=getattr(genome, "evidence_graph", None),
     )
 
 

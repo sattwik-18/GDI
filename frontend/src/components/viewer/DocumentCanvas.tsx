@@ -27,6 +27,8 @@ interface DocumentCanvasProps {
   setZoomLevel: (z: number | ((prev: number) => number)) => void;
   onCursorMove: (pos: { x: number; y: number }) => void;
   highlightedTextIndex: number | null;
+  onOpenFileUpload?: () => void;
+  onUploadFile?: (file: File) => void;
 }
 
 export const DocumentCanvas: React.FC<DocumentCanvasProps> = ({
@@ -37,12 +39,57 @@ export const DocumentCanvas: React.FC<DocumentCanvasProps> = ({
   setZoomLevel,
   onCursorMove,
   highlightedTextIndex,
+  onOpenFileUpload,
+  onUploadFile,
 }) => {
   const [rotation, setRotation] = useState(0);
   const [showOCROverlay, setShowOCROverlay] = useState(true);
   const [showGrid, setShowGrid] = useState(false);
   const [activeTool, setActiveTool] = useState<'select' | 'hand'>('select');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const localFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleTriggerUpload = () => {
+    if (onOpenFileUpload) {
+      onOpenFileUpload();
+    } else {
+      localFileInputRef.current?.click();
+    }
+  };
+
+  const handleLocalFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (onUploadFile) {
+        onUploadFile(file);
+      }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      if (onUploadFile) {
+        onUploadFile(file);
+      }
+    }
+  };
   const [isPdf, setIsPdf] = useState(false);
   const [pdfNumPages, setPdfNumPages] = useState(1);
   const [pdfPage, setPdfPage] = useState(1);
@@ -496,9 +543,41 @@ export const DocumentCanvas: React.FC<DocumentCanvasProps> = ({
               </div>
             )
           ) : (
-            <div className="w-full h-[800px] flex flex-col items-center justify-center p-8 bg-[#f8fafc] text-slate-500 font-mono text-xs text-center">
-              <Upload className="w-8 h-8 text-slate-400 mb-2" />
-              <span>Select or upload a document to render canvas</span>
+            <div
+              onClick={handleTriggerUpload}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`w-full h-[800px] flex flex-col items-center justify-center p-8 transition-all duration-200 cursor-pointer select-none group ${
+                isDraggingOver
+                  ? 'bg-blue-50/80 border-2 border-dashed border-blue-500 text-blue-600'
+                  : 'bg-[#f8fafc] hover:bg-slate-100/90 text-slate-500'
+              }`}
+            >
+              <input
+                ref={localFileInputRef}
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg,.tiff,.bmp,.webp"
+                onChange={handleLocalFileChange}
+                className="hidden"
+              />
+              <div className="w-16 h-16 mb-4 rounded-full bg-white shadow-sm border border-slate-200 flex items-center justify-center group-hover:scale-110 group-hover:border-blue-400 group-hover:shadow-md transition-all duration-200">
+                <Upload className="w-8 h-8 text-slate-500 group-hover:text-blue-600 transition-colors" />
+              </div>
+              <span className="font-mono text-sm font-medium text-slate-700 group-hover:text-blue-600 transition-colors mb-1">
+                Select or upload a document to render canvas
+              </span>
+              <span className="font-mono text-xs text-slate-400 mb-4">
+                Click anywhere in this area or drag and drop your file here
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 bg-white border border-slate-200 rounded text-[11px] font-mono text-slate-500 shadow-2xs group-hover:border-blue-300 transition-colors">
+                  PDF · PNG · JPEG · TIFF · BMP · WebP
+                </span>
+                <span className="px-2 py-1 bg-blue-50 border border-blue-200 text-blue-600 rounded text-[11px] font-mono font-medium">
+                  Up to 100MB
+                </span>
+              </div>
             </div>
           )}
         </div>

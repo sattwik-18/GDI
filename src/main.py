@@ -1,7 +1,16 @@
-"""GDI Genome Extraction Engine — FastAPI application entry point."""
-
 import os
-os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
+import numpy as np
+
+# NumPy 2.x compatibility monkeypatch for PaddleOCR / attrdict
+if not hasattr(np, "sctypes"):
+    np.sctypes = {
+        "int": [np.int8, np.int16, np.int32, np.int64],
+        "uint": [np.uint8, np.uint16, np.uint32, np.uint64],
+        "float": [np.float16, np.float32, np.float64],
+        "complex": [np.complex64, np.complex128],
+        "others": [bool, object, bytes, str, np.void],
+    }
 
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
@@ -51,7 +60,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.api.cors_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 

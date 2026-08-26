@@ -164,10 +164,13 @@ function ForensicWorkstation() {
                 setZoomLevel={setZoomLevel}
                 onCursorMove={setCursorPos}
                 highlightedTextIndex={highlightedTextIndex}
+                onOpenFileUpload={triggerFileUpload}
+                onUploadFile={processFile}
               />
               <AnalysisInspector
                 genome={currentGenome}
                 debugData={debugData}
+                uploadedFile={uploadedFile}
                 onHoverOCRIndex={setHighlightedTextIndex}
                 isCollapsed={isRightCollapsed}
                 onToggleCollapse={() => setRightCollapsed(!isRightCollapsed)}

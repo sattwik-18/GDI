@@ -3,6 +3,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.pipeline.base import PipelineOrchestrator, PipelineStep
+from src.application.pipeline.steps.document_classification_step import DocumentClassificationStep
 from src.application.pipeline.steps.frequency_extraction_step import FrequencyExtractionStep
 from src.application.pipeline.steps.genome_assembly_step import GenomeAssemblyStep
 from src.application.pipeline.steps.genome_sealing_step import GenomeSealingStep
@@ -17,9 +18,13 @@ from src.application.pipeline.steps.ocr_step import OCRStep
 from src.application.pipeline.steps.pdf_rendering_step import PDFRenderingStep
 from src.application.pipeline.steps.persistence_step import PersistenceStep
 from src.application.pipeline.steps.quality_assessment_step import QualityAssessmentStep
+from src.application.pipeline.steps.semantic_kie_step import SemanticKIEStep
 from src.application.pipeline.steps.statistical_extraction_step import StatisticalExtractionStep
+from src.application.pipeline.steps.table_extraction_step import TableExtractionStep
+from src.application.pipeline.steps.template_intelligence_step import TemplateIntelligenceStep
 from src.application.pipeline.steps.texture_extraction_step import TextureExtractionStep
 from src.application.pipeline.steps.validation_step import ValidationStep
+from src.application.pipeline.steps.visual_embedding_step import VisualEmbeddingStep
 
 
 class PipelineRegistry:
@@ -44,7 +49,7 @@ class PipelineRegistry:
 
 
 def get_default_pipeline_registry(session: AsyncSession) -> PipelineRegistry:
-    """Factory building pre-registered 17-step pipeline in canonical order."""
+    """Factory building pre-registered full intelligence pipeline in canonical order."""
     registry = PipelineRegistry()
     registry.register(ValidationStep(), order=10)
     registry.register(MetadataExtractionStep(), order=20)
@@ -53,10 +58,15 @@ def get_default_pipeline_registry(session: AsyncSession) -> PipelineRegistry:
     registry.register(QualityAssessmentStep(), order=50)
     registry.register(OCRStep(), order=60)
     registry.register(LayoutAnalysisStep(), order=70)
+    registry.register(TableExtractionStep(), order=72)
+    registry.register(DocumentClassificationStep(), order=74)
+    registry.register(SemanticKIEStep(), order=76)
     registry.register(GeometryExtractionStep(), order=80)
     registry.register(TextureExtractionStep(), order=90)
     registry.register(FrequencyExtractionStep(), order=100)
+    registry.register(VisualEmbeddingStep(), order=105)
     registry.register(StatisticalExtractionStep(), order=110)
+    registry.register(TemplateIntelligenceStep(), order=115)
     registry.register(GenomeAssemblyStep(), order=120)
     registry.register(GenomeValidationStep(), order=130)
     registry.register(GenomeSealingStep(), order=140)

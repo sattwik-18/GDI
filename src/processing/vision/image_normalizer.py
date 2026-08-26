@@ -56,13 +56,16 @@ class ImageNormalizer:
             edges, 1, np.pi / 180, threshold=100, minLineLength=100, maxLineGap=10
         )
 
-        if lines is None:
+        if lines is None or len(lines) == 0:
             return img, 0.0
 
         angles = []
         for line in lines:
-            x1, y1, x2, y2 = line[0]
-            angle = np.arctan2(y2 - y1, x2 - x1) * 180.0 / np.pi
+            pts = np.asarray(line).ravel()
+            if len(pts) < 4:
+                continue
+            x1, y1, x2, y2 = pts[0], pts[1], pts[2], pts[3]
+            angle = float(np.arctan2(float(y2 - y1), float(x2 - x1)) * 180.0 / np.pi)
             if -45 < angle < 45:
                 angles.append(angle)
 

@@ -6,12 +6,17 @@ from typing import Any
 import uuid
 
 from src.domain.entities.document import Document
+from src.domain.entities.evidence_graph import DocumentEvidenceGraph
 from src.domain.entities.feature_group import FeatureGroup
 from src.domain.entities.genome import DocumentGenome
 from src.domain.entities.manifest import ManifestStepRecord, ProcessingManifest
 from src.domain.entities.page import Page
 from src.domain.entities.processing_job import ProcessingJob
 from src.domain.entities.quality_report import QualityReport
+from src.domain.entities.semantic_genome import SemanticGenome
+from src.domain.entities.structural_genome import StructuralElement, StructuralGenome, StructuredTable
+from src.domain.entities.template_genome import TemplateGenome
+from src.domain.entities.visual_genome import VisualGenome
 from src.domain.interfaces.ocr_engine import OCRPageResult
 
 
@@ -85,6 +90,16 @@ class ProcessingContext:
     ocr_results: list[OCRPageResult] = field(default_factory=list)
     layout_results: list[LayoutPageResult] = field(default_factory=list)
     extracted_feature_groups: list[FeatureGroup] = field(default_factory=list)
+    
+    # Intelligent Multi-Layer Genome Properties
+    structural_elements: list[StructuralElement] = field(default_factory=list)
+    extracted_tables: list[StructuredTable] = field(default_factory=list)
+    structural_genome: StructuralGenome | None = None
+    semantic_genome: SemanticGenome | None = None
+    visual_genome: VisualGenome | None = None
+    template_genome: TemplateGenome | None = None
+    evidence_graph: DocumentEvidenceGraph | None = None
+
     genome: DocumentGenome | None = None
     serialized_genome_json: str | None = None
     processing_manifest: ProcessingManifest | None = None

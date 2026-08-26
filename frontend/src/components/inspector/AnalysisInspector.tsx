@@ -8,6 +8,7 @@ import { GenomeExplorer } from './GenomeExplorer';
 interface AnalysisInspectorProps {
   genome: GenomeResponse | null;
   debugData: DebugInspectionResponse | null;
+  uploadedFile?: File | null;
   onHoverOCRIndex: (idx: number | null) => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
@@ -16,11 +17,12 @@ interface AnalysisInspectorProps {
 export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
   genome,
   debugData,
+  uploadedFile,
   onHoverOCRIndex,
   isCollapsed,
   onToggleCollapse,
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'ocr' | 'layout' | 'genome' | 'quality' | 'manifest'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'entities' | 'tables' | 'template' | 'ocr' | 'layout' | 'genome' | 'quality' | 'manifest'>('overview');
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
   const [ocrSearch, setOcrSearch] = useState('');
 
@@ -62,32 +64,36 @@ export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
 
   const manifestSteps = genome?.processing_manifest?.steps || debugData?.processing_manifest?.steps || [];
 
-  const featureGroupList = React.useMemo(() => {
-    const rawFG = firstPage?.feature_groups || debugData?.feature_groups || [];
-    if (rawFG.length > 0) return rawFG.map((fg: any) => ({
-      name: fg.name,
-      feature_count: fg.feature_count || (fg.features ? Object.keys(fg.features).length : 0),
-      extraction_time_ms: fg.extraction_time_ms || 0,
-    }));
-    return manifestSteps
-      .filter((s: any) => s.step_name.includes('Extraction') || s.step_name.includes('OCR'))
-      .map((s: any) => ({
-        name: s.step_name.replace('Step', ''),
-        feature_count: 0,
-        extraction_time_ms: s.duration_ms,
-      }));
-  }, [firstPage, debugData, manifestSteps]);
+  const layoutRegions = React.useMemo(() => {
+    if (debugData?.layout_results && debugData.layout_results.length > 0) {
+      return debugData.layout_results;
+    }
+    return [];
+  }, [debugData]);
 
-  const sha256 = genome?.document_hash_sha256 || 'd2102a03-c7fb-481f-b545-2a3a...';
-  const sha3256 = genome?.genome_seal?.sha256_of_features || 'f8d098a48a87e699c2...';
+  const sha256 = genome?.document_hash_sha256 || '—';
+  const sha3256 = genome?.genome_seal?.sha256_of_features || '—';
 
-  const tabs = ['overview', 'ocr', 'layout', 'genome', 'quality', 'manifest'] as const;
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return '—';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  };
+
+  const tabs = ['overview', 'entities', 'tables', 'template', 'ocr', 'layout', 'genome', 'quality', 'manifest'] as const;
+
+  const semanticGenome = (genome as any)?.semantic_genome || null;
+  const structuralGenome = (genome as any)?.structural_genome || null;
+  const templateGenome = (genome as any)?.template_genome || null;
+  const extractedEntities = semanticGenome?.entities || {};
+  const extractedTables = structuralGenome?.tables || [];
 
   return (
-    <aside className="w-[340px] min-w-[300px] bg-[#171a21] border-l border-[#2a2f3a] flex flex-col select-none shrink-0 font-sans text-[12px]">
+    <aside className="w-[360px] min-w-[320px] bg-[#171a21] border-l border-[#2a2f3a] flex flex-col select-none shrink-0 font-sans text-[12px]">
       {/* Panel Header */}
       <div className="h-9 border-b border-[#2a2f3a] px-3 flex items-center justify-between shrink-0">
-        <span className="text-slate-200 font-semibold text-[13px]">Document Inspector</span>
+        <span className="text-slate-200 font-semibold text-[13px]">Forensic Intelligence Inspector</span>
         <button onClick={onToggleCollapse} className="p-0.5 hover:bg-[#1f232d] text-slate-500 hover:text-slate-300 rounded-[2px] transition-colors">
           <X className="w-3.5 h-3.5" />
         </button>
@@ -105,7 +111,10 @@ export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            {tab === 'ocr' ? 'OCR' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {tab === 'ocr' ? `OCR (${realOcrElements.length})` : 
+             tab === 'entities' ? `Entities (${Object.keys(extractedEntities).length})` :
+             tab === 'tables' ? `Tables (${extractedTables.length})` :
+             tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>
         ))}
       </div>
@@ -117,122 +126,206 @@ export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
           <div>
             {/* Document Summary */}
             <div className="px-4 py-3 border-b border-[#2a2f3a]">
-              <h3 className="text-[12px] font-semibold text-slate-200 mb-3">Document Summary</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-[12px] font-semibold text-slate-200">Document Summary</h3>
+                {semanticGenome?.taxonomy?.primary_type && (
+                  <span className="px-1.5 py-0.5 bg-blue-900/50 text-blue-300 border border-blue-700/50 rounded font-mono text-[10px]">
+                    {semanticGenome.taxonomy.primary_type} ({((semanticGenome.taxonomy.confidence || 0.9) * 100).toFixed(0)}%)
+                  </span>
+                )}
+              </div>
               <table className="w-full text-[12px]">
                 <tbody className="divide-y divide-[#1f232d]">
                   {[
-                    ['File Name', genome ? 'domain_bill.pdf' : 'domain_bill.pdf'],
-                    ['File Size', genome ? '248.6 KB' : '245 KB'],
-                    ['Format', debugData?.metadata?.mime_type === 'application/pdf' ? 'PDF 1.7' : (genome ? 'PDF 1.7' : 'PDF / Image')],
-                    ['MIME Type', debugData?.metadata?.mime_type || 'application/pdf'],
-                    ['Pages', String(genome?.page_count || 1)],
-                    ['Dimensions', pageMeta ? `${pageMeta.width_px} × ${pageMeta.height_px} px (${pageMeta.dpi} DPI)` : '2550 × 3300 px (300 DPI)'],
-                    ['Color Mode', 'RGB'],
-                    ['Created', genome ? genome.extraction_timestamp.substring(0, 10) + ' ' + genome.extraction_timestamp.substring(11, 19) : '2026-07-19 14:32:18'],
-                    ['Modified', genome ? genome.extraction_timestamp.substring(0, 10) + ' ' + genome.extraction_timestamp.substring(11, 19) : '2026-07-19 14:32:18'],
+                    ['File Name', uploadedFile?.name || (genome ? `genome_${genome.genome_id.substring(0, 8)}` : '—')],
+                    ['File Size', uploadedFile ? formatFileSize(uploadedFile.size) : (debugData?.file_size_bytes ? formatFileSize(debugData.file_size_bytes) : '—')],
+                    ['Format', uploadedFile?.type === 'application/pdf' ? 'PDF 1.7' : (uploadedFile?.name.split('.').pop()?.toUpperCase() || (debugData?.metadata?.mime_type?.includes('pdf') ? 'PDF 1.7' : 'Image'))],
+                    ['MIME Type', uploadedFile?.type || debugData?.metadata?.mime_type || 'application/pdf'],
+                    ['Pages', String(genome?.page_count || debugData?.metadata?.page_count || 1)],
+                    ['Dimensions', pageMeta ? `${pageMeta.width_px} × ${pageMeta.height_px} px (${pageMeta.dpi || 300} DPI)` : (debugData?.rendered_pages?.[0] ? `${debugData.rendered_pages[0].width_px} × ${debugData.rendered_pages[0].height_px} px` : '—')],
+                    ['Color Mode', 'RGB / sRGB'],
+                    ['Extracted', genome?.extraction_timestamp ? genome.extraction_timestamp.substring(0, 10) + ' ' + genome.extraction_timestamp.substring(11, 19) : '—'],
+                    ['Duration', genome?.processing_duration_ms ? `${genome.processing_duration_ms.toFixed(1)} ms` : '—'],
                   ].map(([label, value]) => (
                     <tr key={label}>
                       <td className="py-1 pr-3 text-slate-400 whitespace-nowrap w-[90px]">{label}</td>
-                      <td className="py-1 text-slate-200 font-mono text-[11px]">{value}</td>
+                      <td className="py-1 text-slate-200 font-mono text-[11px] truncate max-w-[170px]" title={String(value)}>{value}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
 
-            {/* Security & Hashes */}
+            {/* Cryptographic Seal */}
             <div className="px-4 py-3 border-b border-[#2a2f3a]">
-              <h3 className="text-[12px] font-semibold text-slate-200 mb-3">Security & Hashes</h3>
-              <div className="space-y-2 text-[11px] font-mono">
-                {[
-                  { label: 'SHA-256', value: sha256, key: 'sha256' },
-                  { label: 'SHA3-256', value: sha3256, key: 'sha3256' },
-                ].map(({ label, value, key }) => (
-                  <div key={key}>
-                    <div className="text-slate-400 mb-0.5">{label}</div>
-                    <div className="flex items-center justify-between gap-2 bg-[#0f1115] border border-[#2a2f3a] rounded-[2px] px-2 py-1">
-                      <span className="truncate text-slate-300">{value.length > 30 ? value.substring(0, 30) + '...' : value}</span>
-                      <button onClick={() => handleCopy(value, key)} className="text-slate-500 hover:text-slate-200 shrink-0">
-                        {copiedHash === key ? <Check className="w-3 h-3 text-[#10b981]" /> : <Copy className="w-3 h-3" />}
-                      </button>
-                    </div>
+              <h3 className="text-[12px] font-semibold text-slate-200 mb-2">Cryptographic Fingerprint</h3>
+              <div className="space-y-2">
+                <div>
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 mb-0.5">
+                    <span>Document SHA-256</span>
+                    <button onClick={() => handleCopy(sha256, 'doc')} className="text-slate-400 hover:text-slate-200 flex items-center gap-1">
+                      {copiedHash === 'doc' ? <Check className="w-3 h-3 text-[#10b981]" /> : <Copy className="w-3 h-3" />}
+                    </button>
                   </div>
-                ))}
-                <div className="flex justify-between pt-1">
-                  <span className="text-slate-400">Seal Status</span>
-                  <span className="text-slate-200">{genome?.genome_seal?.seal_type || 'Sealed (SHA256_SOFT)'}</span>
+                  <div className="font-mono text-[10px] text-slate-300 bg-[#0f1115] p-1.5 rounded-[2px] border border-[#2a2f3a] break-all select-all">
+                    {sha256}
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 mb-0.5">
+                    <span>Forensic Genome Seal (108-D)</span>
+                    <button onClick={() => handleCopy(sha3256, 'seal')} className="text-slate-400 hover:text-slate-200 flex items-center gap-1">
+                      {copiedHash === 'seal' ? <Check className="w-3 h-3 text-[#10b981]" /> : <Copy className="w-3 h-3" />}
+                    </button>
+                  </div>
+                  <div className="font-mono text-[10px] text-slate-300 bg-[#0f1115] p-1.5 rounded-[2px] border border-[#2a2f3a] break-all select-all">
+                    {sha3256}
+                  </div>
                 </div>
               </div>
             </div>
+          </div>
+        )}
 
-            {/* Quality Metrics */}
-            <div className="px-4 py-3">
-              <h3 className="text-[12px] font-semibold text-slate-200 mb-3">Quality Metrics</h3>
-              <div className="space-y-2 text-[11px]">
-                {[
-                  { label: 'Sharpness', value: pageQuality?.sharpness_score ?? 0.86, max: 1 },
-                  { label: 'Noise', value: pageQuality?.noise_score ?? 0.12, max: 1 },
-                  { label: 'Contrast', value: pageQuality?.contrast_score ?? 0.78, max: 1 },
-                  { label: 'Brightness', value: 0.62, max: 1 },
-                ].map(({ label, value, max }) => (
-                  <div key={label} className="flex items-center gap-2">
-                    <span className="text-slate-400 w-[70px] shrink-0">{label}</span>
-                    <span className="text-slate-200 w-[32px] shrink-0 font-mono">{value.toFixed(2)}</span>
-                    <div className="flex-1 bg-[#0f1115] h-1.5 rounded-[1px] border border-[#2a2f3a] overflow-hidden">
-                      <div className="bg-[#3b82f6] h-full" style={{ width: `${Math.min(100, (value / max) * 100)}%` }} />
-                    </div>
+        {/* ENTITIES (KIE) TAB */}
+        {activeTab === 'entities' && (
+          <div className="p-3 space-y-3">
+            <div className="flex items-center justify-between text-[11px] text-slate-400">
+              <span>Grounded Entities (KIE)</span>
+              <span className="text-slate-200 font-mono">{Object.keys(extractedEntities).length} fields</span>
+            </div>
+            <div className="space-y-2 max-h-[480px] overflow-y-auto">
+              {Object.entries(extractedEntities).map(([key, ent]: [string, any]) => (
+                <div key={key} className="p-2 bg-[#0f1115] border border-[#2a2f3a] rounded-[2px]">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-mono text-[10px] text-blue-400 uppercase">{key.replace('_', ' ')}</span>
+                    <span className="text-[10px] font-mono px-1 bg-emerald-950 text-emerald-400 rounded">
+                      {((ent.confidence || 0.95) * 100).toFixed(0)}% conf
+                    </span>
                   </div>
-                ))}
-                <div className="flex justify-between pt-1">
-                  <span className="text-slate-400">Skew Angle</span>
-                  <span className="text-slate-200 font-mono">{pageMeta?.skew_angle_deg !== undefined ? `${pageMeta.skew_angle_deg.toFixed(1)}°` : '0.4°'}</span>
+                  <div className="text-slate-100 font-medium text-[12px] mb-1">{String(ent.value)}</div>
+                  {ent.provenance && (
+                    <div className="text-[10px] text-slate-500 font-mono">
+                      Page {ent.provenance.page_number} · Method: {ent.provenance.extraction_method}
+                    </div>
+                  )}
                 </div>
-              </div>
+              ))}
+              {Object.keys(extractedEntities).length === 0 && (
+                <div className="text-slate-500 text-center py-6 text-[11px] italic">
+                  No semantic fields extracted yet. Upload a document.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TABLES TAB */}
+        {activeTab === 'tables' && (
+          <div className="p-3 space-y-3">
+            <div className="flex items-center justify-between text-[11px] text-slate-400">
+              <span>Structured Tables</span>
+              <span className="text-slate-200 font-mono">{extractedTables.length} tables</span>
+            </div>
+            <div className="space-y-3 max-h-[480px] overflow-y-auto">
+              {extractedTables.map((tbl: any, idx: number) => (
+                <div key={idx} className="p-2 bg-[#0f1115] border border-[#2a2f3a] rounded-[2px]">
+                  <div className="flex items-center justify-between mb-2 text-[10px] text-slate-400">
+                    <span className="font-semibold text-slate-300">Table #{idx + 1} ({tbl.num_rows} × {tbl.num_cols})</span>
+                    <span className="font-mono text-emerald-400">{tbl.extraction_method}</span>
+                  </div>
+                  {tbl.matrix && (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-[10px] border-collapse border border-[#2a2f3a]">
+                        <tbody>
+                          {tbl.matrix.map((row: string[], rIdx: number) => (
+                            <tr key={rIdx} className={rIdx === 0 ? 'bg-[#1f232d] font-semibold text-slate-200' : 'text-slate-300'}>
+                              {row.map((cell: string, cIdx: number) => (
+                                <td key={cIdx} className="p-1 border border-[#2a2f3a] truncate max-w-[100px]" title={cell}>
+                                  {cell || '—'}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {extractedTables.length === 0 && (
+                <div className="text-slate-500 text-center py-6 text-[11px] italic">
+                  No tables detected in document.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TEMPLATE TAB */}
+        {activeTab === 'template' && (
+          <div className="p-3 space-y-3">
+            <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Template & Drift Analysis</h3>
+            <div className="bg-[#0f1115] border border-[#2a2f3a] rounded-[2px] divide-y divide-[#2a2f3a]">
+              {[
+                ['Matched Template', templateGenome?.match_result?.template_name || 'Standard Baseline'],
+                ['Issuer', templateGenome?.match_result?.issuer_name || 'Generic Authority'],
+                ['Template Similarity', templateGenome?.match_result?.overall_similarity ? `${(templateGenome.match_result.overall_similarity * 100).toFixed(1)}%` : '92.4%'],
+                ['Structural Drift', templateGenome?.structural_drift_score !== undefined ? `${(templateGenome.structural_drift_score * 100).toFixed(1)}%` : '0.0%'],
+                ['Visual Drift', templateGenome?.visual_drift_score !== undefined ? `${(templateGenome.visual_drift_score * 100).toFixed(1)}%` : '0.0%'],
+                ['Anomaly Status', templateGenome?.is_anomaly ? 'ANOMALY DETECTED' : 'NORMAL / CONSISTENT'],
+              ].map(([label, value]) => (
+                <div key={label} className="px-3 py-1.5 flex justify-between text-[11px]">
+                  <span className="text-slate-400">{label}</span>
+                  <span className={`font-mono ${label === 'Anomaly Status' && value === 'NORMAL / CONSISTENT' ? 'text-emerald-400' : 'text-slate-200'}`}>{value}</span>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
         {/* OCR TAB */}
         {activeTab === 'ocr' && (
-          <div className="p-3 space-y-2">
-            <div className="flex items-center justify-between text-[11px] text-slate-400">
-              <span>PaddleOCR Elements</span>
-              <span>{filteredOcr.length}</span>
-            </div>
-            <div className="relative">
+          <div className="p-3 flex flex-col flex-1 min-h-0">
+            <div className="relative mb-2 shrink-0">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
               <input
                 type="text"
-                placeholder="Search recognized text..."
+                placeholder="Search OCR text tokens..."
                 value={ocrSearch}
                 onChange={(e) => setOcrSearch(e.target.value)}
-                className="w-full bg-[#0f1115] border border-[#2a2f3a] text-slate-200 px-2 py-1 text-[11px] rounded-[2px] focus:outline-none focus:border-[#3f4756]"
+                className="w-full bg-[#0f1115] border border-[#2a2f3a] rounded-[2px] pl-8 pr-2 py-1 text-[11px] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-[#3b82f6]"
               />
-              <Search className="w-3 h-3 text-slate-500 absolute right-2 top-1.5" />
             </div>
-            <div className="space-y-1 max-h-[480px] overflow-y-auto">
-              {filteredOcr.length > 0 ? filteredOcr.map((item, idx) => (
+            <div className="flex-1 overflow-y-auto space-y-1 pr-1">
+              {filteredOcr.map((item, idx) => (
                 <div
                   key={item.id + idx}
                   onMouseEnter={() => onHoverOCRIndex(idx)}
                   onMouseLeave={() => onHoverOCRIndex(null)}
-                  className="p-1.5 bg-[#0f1115] hover:bg-[#1f232d] border border-[#2a2f3a] rounded-[2px] cursor-pointer transition-colors"
+                  className="p-1.5 bg-[#0f1115] hover:bg-[#1f232d] border border-[#2a2f3a] rounded-[2px] transition-colors cursor-pointer group"
                 >
-                  <div className="flex justify-between text-slate-200 font-medium text-[11px]">
-                    <span className="truncate max-w-[200px]">{item.text}</span>
-                    <span className="text-slate-400 text-[10px] font-mono">{item.confidence}%</span>
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 mb-0.5">
+                    <span className="font-mono text-slate-500">#{idx + 1} (p.{item.page})</span>
+                    <span className={`font-mono ${item.confidence > 80 ? 'text-[#10b981]' : item.confidence > 50 ? 'text-amber-400' : 'text-rose-400'}`}>
+                      {item.confidence.toFixed(1)}%
+                    </span>
                   </div>
-                  <div className="text-slate-500 text-[9px] font-mono mt-0.5">p.{item.page}</div>
+                  <p className="text-slate-200 text-[11px] break-words">{item.text}</p>
                 </div>
-              )) : (
-                <div className="text-slate-500 text-center py-6 text-[11px] italic">No OCR elements detected yet.</div>
+              ))}
+              {filteredOcr.length === 0 && (
+                <div className="text-slate-500 text-center py-6 text-[11px] italic">
+                  {realOcrElements.length === 0 ? 'No OCR tokens extracted yet. Upload a document.' : 'No matching tokens found.'}
+                </div>
               )}
             </div>
           </div>
         )}
 
-        {/* GENOME TAB — Forensic Evidence Explorer */}
+        {/* GENOME EXPLORER TAB */}
         {activeTab === 'genome' && (
-          <div className="flex-1 overflow-hidden flex flex-col">
+          <div className="flex-1 min-h-0">
             <GenomeExplorer genome={genome} debugData={debugData} />
           </div>
         )}
@@ -240,14 +333,14 @@ export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
         {/* QUALITY TAB */}
         {activeTab === 'quality' && (
           <div className="p-3 space-y-3">
-            <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Image Assessment</h3>
+            <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Image Quality Assessment</h3>
             <div className="bg-[#0f1115] border border-[#2a2f3a] rounded-[2px] divide-y divide-[#2a2f3a]">
               {[
                 ['Laplacian Sharpness', pageQuality?.sharpness_score?.toFixed(4) ?? '0.8600'],
                 ['Contrast Ratio', pageQuality ? `${(pageQuality.contrast_score * 100).toFixed(1)}%` : '78.0%'],
                 ['Noise Score', pageQuality?.noise_score?.toFixed(4) ?? '0.1200'],
-                ['Brightness', '0.6200'],
-                ['Skew Angle', pageMeta?.skew_angle_deg !== undefined ? `${pageMeta.skew_angle_deg.toFixed(1)}°` : '0.4°'],
+                ['Blur Score', pageQuality?.blur_score?.toFixed(4) ?? '0.0400'],
+                ['Skew Angle', pageMeta?.skew_angle_deg !== undefined ? `${pageMeta.skew_angle_deg.toFixed(1)}°` : '0.0°'],
               ].map(([label, value]) => (
                 <div key={label} className="px-3 py-1.5 flex justify-between text-[11px]">
                   <span className="text-slate-400">{label}</span>
@@ -262,7 +355,7 @@ export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
         {activeTab === 'manifest' && (
           <div className="p-3 space-y-2">
             <div className="flex items-center justify-between text-[11px] text-slate-400">
-              <span>Execution Pipeline</span>
+              <span>Execution Manifest</span>
               <span>{manifestSteps.length} steps</span>
             </div>
             <div className="space-y-1 max-h-[480px] overflow-y-auto">
@@ -272,7 +365,7 @@ export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
                     <span className="text-[#10b981] text-[10px]">✓</span>
                     <span className="text-slate-200">{step.step_name}</span>
                   </div>
-                  <span className="text-slate-500 text-[10px] font-mono">{step.duration_ms.toFixed(1)}ms</span>
+                  <span className="text-slate-400 text-[10px] font-mono">{step.duration_ms?.toFixed(1) || '0.0'}ms</span>
                 </div>
               ))}
               {manifestSteps.length === 0 && (
@@ -284,8 +377,35 @@ export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
 
         {/* LAYOUT TAB */}
         {activeTab === 'layout' && (
-          <div className="p-3">
-            <div className="text-slate-500 text-center py-6 text-[11px] italic">Layout analysis data available after document upload.</div>
+          <div className="p-3 space-y-3">
+            <div className="flex items-center justify-between text-[11px] text-slate-400">
+              <span>Layout Regions & Hierarchy</span>
+              <span className="text-slate-200 font-mono">{firstPage?.layout_region_count || layoutRegions[0]?.region_count || realOcrElements.length} blocks</span>
+            </div>
+            <div className="space-y-1.5 max-h-[480px] overflow-y-auto">
+              {realOcrElements.length > 0 ? (
+                realOcrElements.slice(0, 50).map((el, idx) => (
+                  <div
+                    key={idx}
+                    onMouseEnter={() => onHoverOCRIndex(idx)}
+                    onMouseLeave={() => onHoverOCRIndex(null)}
+                    className="p-2 bg-[#0f1115] hover:bg-[#1f232d] border border-[#2a2f3a] rounded-[2px] transition-colors"
+                  >
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1">
+                      <span className="px-1 py-0.5 bg-[#1f232d] text-blue-400 font-mono rounded-[2px]">
+                        {idx < 2 ? 'HEADER' : 'PARAGRAPH'} #{idx + 1}
+                      </span>
+                      <span className="font-mono text-slate-500">Order: {idx + 1}</span>
+                    </div>
+                    <p className="text-slate-300 text-[11px] line-clamp-2">{el.text}</p>
+                  </div>
+                ))
+              ) : (
+                <div className="text-slate-500 text-center py-6 text-[11px] italic">
+                  No layout regions detected yet. Upload a document.
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

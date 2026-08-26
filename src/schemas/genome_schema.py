@@ -113,6 +113,11 @@ class DocumentGenomeSchema(BaseModel):
     feature_vector: list[float]
     genome_seal: GenomeSealSchema
     processing_manifest: ProcessingManifestSchema
+    structural_genome: dict[str, Any] | None = None
+    semantic_genome: dict[str, Any] | None = None
+    visual_genome: dict[str, Any] | None = None
+    template_genome: dict[str, Any] | None = None
+    evidence_graph: dict[str, Any] | None = None
 
     @model_validator(mode="after")
     def validate_page_count_consistency(self) -> DocumentGenomeSchema:
